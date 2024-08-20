@@ -25,7 +25,7 @@ typedef struct {
 // Forward declarations
 void show_help (const char *program_name);
 void edit_config (char *setting, char *value);
-void print_line (const Color *fg_color, const size_t *max_line_len, char *art_string, char *info_type, char *info_string);
+void print_line (const Color *base_color, const Color *accent_color, const size_t *max_line_len, char *art_string, char *info_type, char *info_string);
 Config *get_config (size_t *config_count);
 void free_config (Config *config, size_t config_count);
 char **get_art (size_t *line_count, size_t *max_line_len);
@@ -33,15 +33,6 @@ void free_art (char **art, size_t line_count);
 
 int main (int argc, char *argv[]) 
 {
-    // Config editing with args here
-    if (argc == 1) {
-        // No options provided, perform default action
-        printf("Displaying sysfetch...\n");
-        // Call your sysfetch function here
-        // display_sysfetch();
-        EXIT_SUCCESS;
-    }
-
     int opt;
     int option_index = 0;
 
@@ -49,8 +40,8 @@ int main (int argc, char *argv[])
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'v'},
-        {"fg-color", required_argument, 0, 'f'},
-        {"bg-color", required_argument, 0, 'b'},
+        {"baset-color", required_argument, 0, 'b'},
+        {"accent-color", required_argument, 0, 'a'},
         {0, 0, 0, 0}  // Terminate the array with all zeros
     };
 
@@ -62,15 +53,15 @@ int main (int argc, char *argv[])
             case 'v':
                 printf("Version %s\n", VERSION);
                 return EXIT_SUCCESS; 
-            case 'f':
+            case 'b':
                 if (optarg)
-                    edit_config("fg_color", optarg);
+                    edit_config("base_color", optarg);
                 else
                     printf("Usage: -f, --fg-color [r,g,b]\n");
                 break;
-            case 'b':
+            case 'a':
                 if (optarg)
-                    edit_config("bg_color", optarg);
+                    edit_config("accent_color", optarg);
                 else
                     printf("Usage: -b, --bg-color [r,g,b]\n");
                 break;
@@ -87,7 +78,7 @@ int main (int argc, char *argv[])
     // Config parsing
     size_t config_count = 0;
     Config *config = get_config(&config_count);
-    Color fg_color; 
+    Color base_color, accent_color; 
     if (config != NULL) {
         // for (int i = 0; i < config_count; i++) {
         //     printf("%s%s\n", config[i].name, config[i].value);
@@ -95,10 +86,15 @@ int main (int argc, char *argv[])
 
         // Parse specific settings
         for (int i = 0; i < config_count; i++) {
-            if (strcmp(config[i].name, "fg_color") == 0) {
-                sscanf(config[i].value, "%hhu,%hhu,%hhu", &fg_color.r, &fg_color.g, &fg_color.b);
+            if (strcmp(config[i].name, "base_color") == 0) {
+                sscanf(config[i].value, "%hhu,%hhu,%hhu", &base_color.r, &base_color.g, &base_color.b);
+            }
+            if (strcmp(config[i].name, "accent_color") == 0) {
+                sscanf(config[i].value, "%hhu,%hhu,%hhu", &accent_color.r, &accent_color.g, &accent_color.b);
             }
         }
+        
+        // do the defaults here if not found
 
         free_config(config, config_count);
     } else {
@@ -116,9 +112,9 @@ int main (int argc, char *argv[])
         
         // printing
         for (int i = 0; i < art_count; i++) {
-            print_line(&fg_color, &max_line_len, art[i], "siddh@", "arch");
+            print_line(&base_color, &accent_color, &max_line_len, art[i], "siddh@", "arch");
         }
-        printf("\n");
+        // printf("\n");
 
         free_art(art, art_count);
     } else {
@@ -137,12 +133,12 @@ void show_help (const char *program_name)
     printf("  (no option)\t\t\tDisplay sysfetch\n");
     printf("  -h, --help\t\t\tShow this help message and exit\n");
     printf("  -v, --version\t\t\tDisplay version information and exit\n");
-    printf("  -f, --fg-color [r,g,b]\tSet foreground color in the format r,g,b\n");
-    printf("  -b, --bg-color [r,g,b]\tSet background color in the format r,g,b\n\n");
+    printf("  -b, --base-color [r,g,b]\tSet base color in the format r,g,b\n");
+    printf("  -a, --accent-color [r,g,b]\tSet accent color in the format r,g,b\n\n");
     printf("Examples:\n");
     printf("  %s\t\t\tDisplay sysfetch\n", program_name);
-    printf("  %s -f 255,255,255\tSet foreground color to white\n", program_name);
-    printf("  %s --bg-color 0,0,0\tSet background color to black\n\n", program_name);
+    printf("  %s -b 255,255,255\tSet base color to white\n", program_name);
+    printf("  %s --accent-color 0,0,0\tSet accent color to black\n\n", program_name);
 }
 
 void edit_config (char *setting, char *value)
@@ -169,7 +165,7 @@ void edit_config (char *setting, char *value)
         return;
     }
 
-    // Add input validation here if needed
+    // Add input validation here
     // format string r,g,b
     // value between 0 and 255
 
@@ -204,17 +200,22 @@ void edit_config (char *setting, char *value)
     }
 }
 
-
-void print_line(const Color *fg_color, const size_t *max_line_len, char *art_string, char *info_type, char *info_string)
+void print_line(const Color *base_color, const Color *accent_color, const size_t *max_line_len, char *art_string, char *info_type, char *info_string)
 {
-    // Change foreground color
-    printf("\033[38;2;%d;%d;%dm", fg_color->r, fg_color->g, fg_color->b);
+    // Change color
+    printf("\033[38;2;%d;%d;%dm", accent_color->r, accent_color->g, accent_color->b);
+
     // Print art and info type
     printf(" %-*s%s", *max_line_len + 2, art_string, info_type);
-    // Reset colors
-    printf("\033[0m");
+
+    // Change color
+    printf("\033[38;2;%d;%d;%dm", base_color->r, base_color->g, base_color->b);
+
     // Print info string
     printf("%s\n", info_string);
+
+    // Reset color
+    printf("\033[0m");
 }
 
 char **get_art(size_t *line_count, size_t *max_line_len)
