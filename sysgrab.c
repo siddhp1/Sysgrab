@@ -1,7 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <getopt.h>
 
+#define VERSION "0.0.1"
 #define ART_FILE_PATH "art.txt"
 #define CONFIG_FILE_PATH "config.txt"
 #define CONFIG_BUFFER_SIZE 64
@@ -20,16 +23,67 @@ typedef struct {
 } Color; 
 
 // Forward declarations
+void show_help (const char *program_name);
+void edit_config (char *setting, char *value);
 void print_line (const Color *fg_color, const size_t *max_line_len, char *art_string, char *info_type, char *info_string);
 Config *get_config (size_t *config_count);
 void free_config (Config *config, size_t config_count);
 char **get_art (size_t *line_count, size_t *max_line_len);
 void free_art (char **art, size_t line_count);
 
-int main (void) 
+int main (int argc, char *argv[]) 
 {
     // Config editing with args here
+    if (argc == 1) {
+        // No options provided, perform default action
+        printf("Displaying sysfetch...\n");
+        // Call your sysfetch function here
+        // display_sysfetch();
+        EXIT_SUCCESS;
+    }
 
+    int opt;
+    int option_index = 0;
+
+    // Long options
+    static struct option long_options[] = {
+        {"help", no_argument, 0, 'h'},
+        {"version", no_argument, 0, 'v'},
+        {"fg-color", required_argument, 0, 'f'},
+        {"bg-color", required_argument, 0, 'b'},
+        {0, 0, 0, 0}  // Terminate the array with all zeros
+    };
+
+    while ((opt = getopt_long(argc, argv, "hvf:b:", long_options, &option_index)) != -1) {
+        switch (opt) {
+            case 'h':
+                show_help(argv[0]);
+                return EXIT_SUCCESS; 
+            case 'v':
+                printf("Version %s\n", VERSION);
+                return EXIT_SUCCESS; 
+            case 'f':
+                if (optarg)
+                    edit_config("fg_color", optarg);
+                else
+                    printf("Usage: -f, --fg-color [r,g,b]\n");
+                break;
+            case 'b':
+                if (optarg)
+                    edit_config("bg_color", optarg);
+                else
+                    printf("Usage: -b, --bg-color [r,g,b]\n");
+                break;
+            case '?':
+                fprintf(stderr, "Unknown option: -%c\n", optopt);
+                // show_help(argv[0]);
+                exit(EXIT_FAILURE);
+            default:
+                //show_help(argv[0]);
+                exit(EXIT_FAILURE);
+        }
+    }
+    
     // Config parsing
     size_t config_count = 0;
     Config *config = get_config(&config_count);
@@ -74,6 +128,82 @@ int main (void)
 
     return EXIT_SUCCESS;
 }
+
+void show_help (const char *program_name)
+{
+    printf("Usage: %s [OPTIONS]\n", program_name);
+    printf("Modify the configuration settings with the specified options.\n\n");
+    printf("Options:\n");
+    printf("  (no option)\t\t\tDisplay sysfetch\n");
+    printf("  -h, --help\t\t\tShow this help message and exit\n");
+    printf("  -v, --version\t\t\tDisplay version information and exit\n");
+    printf("  -f, --fg-color [r,g,b]\tSet foreground color in the format r,g,b\n");
+    printf("  -b, --bg-color [r,g,b]\tSet background color in the format r,g,b\n\n");
+    printf("Examples:\n");
+    printf("  %s\t\t\tDisplay sysfetch\n", program_name);
+    printf("  %s -f 255,255,255\tSet foreground color to white\n", program_name);
+    printf("  %s --bg-color 0,0,0\tSet background color to black\n\n", program_name);
+}
+
+void edit_config (char *setting, char *value)
+{
+    FILE *fp = fopen(CONFIG_FILE_PATH, "r+");
+    if (fp == NULL) {
+        printf("Error opening file: %s\n", CONFIG_FILE_PATH);
+        return;
+    }
+
+    char temp_filename[] = "config_tempXXXXXX";
+    int temp_fd = mkstemp(temp_filename);
+    if (temp_fd == -1) {
+        printf("Error creating temp file\n");
+        fclose(fp);
+        return;
+    }
+
+    FILE *temp_fp = fdopen(temp_fd, "w");
+    if (temp_fp == NULL) {
+        printf("Error opening temp file stream\n");
+        close(temp_fd);
+        fclose(fp);
+        return;
+    }
+
+    // Add input validation here if needed
+    // format string r,g,b
+    // value between 0 and 255
+
+    char line[256];
+    int found = 0;
+    while (fgets(line, sizeof(line), fp)) {
+        // Check if the line starts with the setting we want to edit
+        if (strncmp(line, setting, strlen(setting)) == 0 && line[strlen(setting)] == '=') {
+            fprintf(temp_fp, "%s=%s\n", setting, value);
+            found = 1;
+        } else {
+            fputs(line, temp_fp);
+        }
+    }
+
+    if (!found) {
+        // If setting not found, append it at the end of the file
+        fprintf(temp_fp, "%s=%s\n", setting, value);
+    }
+
+    fclose(fp);
+    fclose(temp_fp);
+
+    // Replace the original file with the temp file
+    if (remove(CONFIG_FILE_PATH) != 0) {
+        printf("Error deleting original file\n");
+        return;
+    }
+
+    if (rename(temp_filename, CONFIG_FILE_PATH) != 0) {
+        printf("Error renaming temp file to original file\n");
+    }
+}
+
 
 void print_line(const Color *fg_color, const size_t *max_line_len, char *art_string, char *info_type, char *info_string)
 {
