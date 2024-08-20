@@ -67,10 +67,8 @@ int main (int argc, char *argv[])
                 break;
             case '?':
                 fprintf(stderr, "Unknown option: -%c\n", optopt);
-                // show_help(argv[0]);
                 exit(EXIT_FAILURE);
             default:
-                //show_help(argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
@@ -80,10 +78,6 @@ int main (int argc, char *argv[])
     Config *config = get_config(&config_count);
     Color base_color, accent_color; 
     if (config != NULL) {
-        // for (int i = 0; i < config_count; i++) {
-        //     printf("%s%s\n", config[i].name, config[i].value);
-        // }
-
         // Parse specific settings
         for (int i = 0; i < config_count; i++) {
             if (strcmp(config[i].name, "base_color") == 0) {
@@ -93,30 +87,33 @@ int main (int argc, char *argv[])
                 sscanf(config[i].value, "%hhu,%hhu,%hhu", &accent_color.r, &accent_color.g, &accent_color.b);
             }
         }
-        
-        // do the defaults here if not found
-
         free_config(config, config_count);
-    } else {
-        printf("Failed to load configuration.\n");
-        return EXIT_FAILURE;
+    }
+
+    // Default values for settings if not found in config file
+    if (!base_color.r) {
+        base_color.r = 255; 
+        base_color.g = 255; 
+        base_color.b = 255; 
+    }
+    if (!accent_color.r) {
+        accent_color.r = 64; 
+        accent_color.g = 224; 
+        accent_color.b = 208; 
     }
 
     // Art parsing and printing
     size_t max_line_len = 0; 
-    size_t art_count = 0;
-    char **art = get_art(&art_count, &max_line_len);
-    if (art != NULL) {
-        // printf("Maximum line length: %zu\n", max_line_len);
-        // printf("Number of lines: %zu\n", art_count);
-        
-        // printing
-        for (int i = 0; i < art_count; i++) {
+    size_t line_count = 0;
+    char **art = get_art(&line_count, &max_line_len);
+    if (art != NULL) {        
+        // Printing
+        for (int i = 0; i < line_count; i++) {
             print_line(&base_color, &accent_color, &max_line_len, art[i], "siddh@", "arch");
         }
-        // printf("\n");
+        printf("\n");
 
-        free_art(art, art_count);
+        free_art(art, line_count);
     } else {
         printf("Failed to load art.\n");
         return EXIT_FAILURE;
