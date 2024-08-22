@@ -1,8 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 #include <getopt.h>
+#include <stdbool.h>
+#include "data.h"
 
 #define VERSION "0.0.1"
 #define ART_FILE_PATH "art.txt"
@@ -22,6 +20,17 @@ typedef struct {
     unsigned char b;
 } Color; 
 
+char *data_points[] = {
+    "OS: ",
+    "Architecture: ",
+    "Kernel: ",
+    "Host: ",
+    "Shell: ",
+    "Uptime: ",
+    "CPU: ",
+    "Memory: "
+};
+
 // Forward declarations
 void show_help (const char *program_name);
 void edit_config (char *setting, char *value);
@@ -40,12 +49,12 @@ int main (int argc, char *argv[])
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'v'},
-        {"baset-color", required_argument, 0, 'b'},
+        {"base-color", required_argument, 0, 'b'},
         {"accent-color", required_argument, 0, 'a'},
         {0, 0, 0, 0}  // Terminate the array with all zeros
     };
 
-    while ((opt = getopt_long(argc, argv, "hvf:b:", long_options, &option_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvb:a:", long_options, &option_index)) != -1) {
         switch (opt) {
             case 'h':
                 show_help(argv[0]);
@@ -57,16 +66,16 @@ int main (int argc, char *argv[])
                 if (optarg)
                     edit_config("base_color", optarg);
                 else
-                    printf("Usage: -f, --fg-color [r,g,b]\n");
+                    printf("Usage: -b, --base-color [r,g,b]\n");
                 break;
             case 'a':
                 if (optarg)
                     edit_config("accent_color", optarg);
                 else
-                    printf("Usage: -b, --bg-color [r,g,b]\n");
+                    printf("Usage: -a, --accent-color [r,g,b]\n");
                 break;
             case '?':
-                fprintf(stderr, "Unknown option: -%c\n", optopt);
+                fprintf(stderr, "Unknown option: %c\n", optopt);
                 exit(EXIT_FAILURE);
             default:
                 exit(EXIT_FAILURE);
@@ -91,32 +100,101 @@ int main (int argc, char *argv[])
     }
 
     // Default values for settings if not found in config file
-    if (!base_color.r) {
-        base_color.r = 255; 
+    if (!base_color.r || !base_color.g || !base_color.b) {
+        base_color.r = 255;
         base_color.g = 255; 
         base_color.b = 255; 
     }
-    if (!accent_color.r) {
+    if (!accent_color.r || !accent_color.g || !accent_color.b) {
         accent_color.r = 64; 
         accent_color.g = 224; 
         accent_color.b = 208; 
     }
 
     // Art parsing and printing
-    size_t max_line_len = 0; 
-    size_t line_count = 0;
+    size_t max_line_len = 0, line_count = 0; 
     char **art = get_art(&line_count, &max_line_len);
-    if (art != NULL) {        
-        // Printing
-        for (int i = 0; i < line_count; i++) {
-            print_line(&base_color, &accent_color, &max_line_len, art[i], "siddh@", "arch");
-        }
-        printf("\n");
 
+    if (art != NULL) {
+        char *username, *hostname;
+
+        username = get_info(USERNAME);
+        hostname = get_info(HOSTNAME);
+        size_t user_host_len = 0;
+
+        if (username && hostname) {
+            user_host_len = strlen(username) + strlen(hostname) + 1;
+            strcat(username, "@");
+
+            char dashes[user_host_len + 1];
+            memset(dashes, '-', user_host_len);
+            dashes[user_host_len] = '\0';
+
+            if (line_count > 0) {
+                print_line(&base_color, &accent_color, &max_line_len, art[0], username, hostname);
+
+            } else {
+                print_line(&base_color, &accent_color, &max_line_len, "", username, hostname);
+            }
+
+            if (line_count > 1) {
+                print_line(&base_color, &accent_color, &max_line_len, art[1], "", dashes);
+
+            } else {
+                print_line(&base_color, &accent_color, &max_line_len, "", "", dashes);
+            }
+
+            free(username);
+            free(hostname);
+        }
+
+        for (DataPoint dp = OS; dp <= MEMORY; dp++) {
+            char *info = get_info(dp);
+            if (info) {
+                if (dp < line_count) {
+                print_line(&base_color, &accent_color, &max_line_len, art[dp], data_points[dp - 2], info); 
+                } else {
+                    print_line(&base_color, &accent_color, &max_line_len, "", data_points[dp - 2], info);
+                }
+            }
+        }
+
+        for (int i = 10; i < line_count; i++) {
+            print_line(&base_color, &accent_color, &max_line_len, art[i], "", "");
+        }
+
+        printf("\n");
         free_art(art, line_count);
     } else {
-        printf("Failed to load art.\n");
-        return EXIT_FAILURE;
+        char *username, *hostname;
+
+        username = get_info(USERNAME);
+        hostname = get_info(HOSTNAME);
+        size_t user_host_len = 0;
+
+        if (username && hostname) {
+            user_host_len = strlen(username) + strlen(hostname) + 1;
+            strcat(username, "@");
+            print_line(&base_color, &accent_color, &max_line_len, NULL, username, hostname);
+            free(username);
+            free(hostname);
+        }
+
+        char dashes[user_host_len + 1];
+        memset(dashes, '-', user_host_len);
+        dashes[user_host_len] = '\0';
+
+        print_line(&base_color, &accent_color, &max_line_len, NULL, "", dashes);
+
+        for (DataPoint dp = OS; dp <= MEMORY; dp++) {
+            char *info = get_info(dp);
+            if (info) {
+                print_line(&base_color, &accent_color, &max_line_len, NULL, data_points[dp - 2], info);
+                free(info);
+            }
+        }
+
+        printf("\n");
     }
 
     return EXIT_SUCCESS;
@@ -138,8 +216,31 @@ void show_help (const char *program_name)
     printf("  %s --accent-color 0,0,0\tSet accent color to black\n\n", program_name);
 }
 
+// Function to validate the format of r,g,b values
+bool validate_rgb_value(const char *value) {
+    int r, g, b;
+    char temp;
+    
+    // Check if the value is in the format r,g,b and each component is within the 0-255 range
+    if (sscanf(value, "%d,%d,%d%c", &r, &g, &b, &temp) != 3) {
+        return false;
+    }
+    
+    if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
+        return false;
+    }
+    
+    return true;
+}
+
 void edit_config (char *setting, char *value)
 {
+    // Input validation for RGB value
+    if (!validate_rgb_value(value)) {
+        printf("Invalid value: %s. Expected format: r,g,b with each component between 0 and 255.\n", value);
+        return;
+    }
+
     FILE *fp = fopen(CONFIG_FILE_PATH, "r+");
     if (fp == NULL) {
         printf("Error opening file: %s\n", CONFIG_FILE_PATH);
@@ -161,10 +262,6 @@ void edit_config (char *setting, char *value)
         fclose(fp);
         return;
     }
-
-    // Add input validation here
-    // format string r,g,b
-    // value between 0 and 255
 
     char line[256];
     int found = 0;
@@ -202,8 +299,13 @@ void print_line(const Color *base_color, const Color *accent_color, const size_t
     // Change color
     printf("\033[38;2;%d;%d;%dm", accent_color->r, accent_color->g, accent_color->b);
 
-    // Print art and info type
-    printf(" %-*s%s", *max_line_len + 2, art_string, info_type);
+    // Print art
+    if (art_string != NULL) {
+        printf(" %-*s", *max_line_len + 2, art_string);
+    }
+
+    // Print info type
+    printf("%s", info_type);
 
     // Change color
     printf("\033[38;2;%d;%d;%dm", base_color->r, base_color->g, base_color->b);
@@ -219,7 +321,6 @@ char **get_art(size_t *line_count, size_t *max_line_len)
 {
     FILE *art_fp = fopen(ART_FILE_PATH, "r");
     if (art_fp == NULL) {
-        printf("Error opening file: %s\n", ART_FILE_PATH);
         return NULL;
     }
 
