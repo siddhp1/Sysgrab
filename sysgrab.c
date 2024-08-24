@@ -3,6 +3,7 @@
 #include "data.h"
 
 #define VERSION "0.0.1"
+#define ERROR_MSG "not found"
 #define ART_FILE_PATH "art.txt"
 #define CONFIG_FILE_PATH "config.txt"
 #define CONFIG_BUFFER_SIZE 64
@@ -156,6 +157,12 @@ int main (int argc, char *argv[])
                 } else {
                     print_line(&base_color, &accent_color, &max_line_len, "", data_points[dp - 2], info);
                 }
+            } else {
+                if (dp < line_count) {
+                print_line(&base_color, &accent_color, &max_line_len, art[dp], data_points[dp - 2], ERROR_MSG); 
+                } else {
+                    print_line(&base_color, &accent_color, &max_line_len, "", data_points[dp - 2], ERROR_MSG);
+                }
             }
         }
 
@@ -190,6 +197,9 @@ int main (int argc, char *argv[])
             char *info = get_info(dp);
             if (info) {
                 print_line(&base_color, &accent_color, &max_line_len, NULL, data_points[dp - 2], info);
+                free(info);
+            } else {
+                print_line(&base_color, &accent_color, &max_line_len, NULL, "", ERROR_MSG);
                 free(info);
             }
         }

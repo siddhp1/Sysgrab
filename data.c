@@ -2,9 +2,10 @@
 #include <math.h>
 #include <errno.h>
 #include <limits.h>
+#include <ctype.h>
 #include "data.h"
 
-#define DATA_BUFFER_SIZE 64
+#define DATA_BUFFER_SIZE 128
 
 char *clean_string (char *string, const char *prefix, const char *suffix)
 {
@@ -16,9 +17,26 @@ char *clean_string (char *string, const char *prefix, const char *suffix)
         start += strlen(prefix);
     }
 
+    // Trim leading whitespace
+    while (isspace((unsigned char)*start)) {
+        start++;
+    }
+
+    // Find the new end after trimming leading whitespace
+    end = start + strlen(start);
+
     // Remove the suffix if it exists
     if (suffix && (end = strstr(start, suffix)) != NULL) {
         *end = '\0';
+    }
+
+    // After potentially trimming the suffix, set the `end` pointer again to the last character of the meaningful content.
+    end = start + strlen(start) - 1;
+
+    // Trim trailing whitespace
+    while (end > start && isspace((unsigned char)*end)) {
+        *end = '\0';
+        end--;
     }
 
     // Allocate a new string with the cleaned content
@@ -171,7 +189,6 @@ char *get_from_file (const char *file_path, const char *look_up, const char *pre
 
     FILE *fp = fopen(file_path, "r");
     if (fp == NULL) {
-        printf("Error opening file: %s\n", file_path);
         free(result);
         return NULL;
     }
@@ -232,8 +249,13 @@ char *get_info (DataPoint dp)
         case COMPUTER: {
             char *name = get_from_file("/sys/devices/virtual/dmi/id/product_name", NULL, "", "\n");
             char *version = get_from_file("/sys/devices/virtual/dmi/id/product_version", NULL, "", "\n");
-            strcat(name, " ");
-            result = strcat(name, version);
+    
+            if (name != NULL && version != NULL) {
+                strcat(name, " ");
+                result = strcat(name, version);
+            } else {
+                result = NULL;
+            }
             break;
         }
         case ARCHITECTURE: {
@@ -246,7 +268,10 @@ char *get_info (DataPoint dp)
         }
         case SHELL: {
             char *shell = getenv("SHELL");
-            result = clean_string(shell, "/usr/bin/", "\n");
+            char *last = strrchr(shell, '/');
+            if (last != NULL) {
+                result = last + 1;
+            }
             break;
         }
         case UPTIME: {
@@ -268,17 +293,18 @@ char *get_info (DataPoint dp)
             break;
         }
         case CPU: {
-            char *cpu = get_from_file("/proc/cpuinfo", "model name", "model name\t: ", "\n");
-            char *threads = get_from_file("/proc/cpuinfo", "siblings", "siblings\t: ", "\n");
+            char *cpu = get_from_command("lscpu", "Model name:", "Model name:", "\n");
+            char *threads = get_from_command("lscpu", "CPU(s):", "CPU(s): ", "\n");
             char *freq = get_from_command("lscpu", "CPU max MHz", "CPU max MHz:", "\n");
 
+            int th = extract_int(threads);
             double gh = extract_double(freq) / 1000;
 
             if (cpu && threads && freq) {
                 char *finalcpu = malloc(strlen(cpu) + strlen(threads) + strlen(freq) + 10);
                 if (finalcpu) {
                     snprintf(finalcpu, strlen(cpu) + strlen(threads) + strlen(freq) + 10,
-                            "%s (%s) @ %sGHz", cpu, threads, double_to_string(gh, ".2f"));
+                            "%s (%s) @ %sGHz", cpu, int_to_string(th), double_to_string(gh, ".2f"));
                     free(cpu);
                     free(threads);
                     free(freq);
