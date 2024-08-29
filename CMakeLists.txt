@@ -15,7 +15,7 @@ set(CMAKE_C_STANDARD_REQUIRED True)
 include_directories(include)
 
 # Source files
-set(SOURCES src/sysgrab.c src/data.c src/config.c src/art.c)
+set(SOURCES src/main.c src/data.c src/config.c src/art.c)
 
 # Specify the output directory for binaries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
