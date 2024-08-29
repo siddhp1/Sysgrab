@@ -1,16 +1,25 @@
 #include "config.h"
 
+#define CONFIG_BUFFER_SIZE 64
+#define TEMP_PATH_LENGTH 256
+#define CONFIG_COMMENT_SEQ "//"
+#define DEFAULT_BASE_COLOR "255,255,255"
+#define DEFAULT_ACCENT_COLOR "20,200,255"
+
 // Function to generate config file with defaults
 void generate_config_file (char *config_path)
 {
+    // Check if file exists
     FILE *cp = fopen(config_path, "r");
     if (cp == NULL) {
         FILE *file = fopen(config_path, "w");
         if (file) {
+            // Write default strings to the new file
             fprintf(file, "base_color=%s\n", DEFAULT_BASE_COLOR);
             fprintf(file, "accent_color=%s\n", DEFAULT_ACCENT_COLOR);
             fclose(file);
         } else {
+            perror("Failed to generate config file");
             return;
         }
     } else {
@@ -28,6 +37,7 @@ bool validate_rgb_value(const char *value) {
         return false;
     }
     
+    // Check if numbers are between 0 and 255
     if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
         return false;
     }
@@ -40,27 +50,31 @@ void edit_config (char *setting, char *value, char *config_path)
 {
     // Input validation for RGB value
     if (!validate_rgb_value(value)) {
-        printf("Invalid value: %s. Expected format: r,g,b with each component between 0 and 255.\n", value);
+        fprintf(stderr, "Invalid value: %s. Expected format: r,g,b with each component between 0 and 255.\n", value);
         return;
     }
 
+    // Open file to read and write
     FILE *fp = fopen(config_path, "r+");
     if (fp == NULL) {
-        printf("Error opening file: %s\n", config_path);
+        fprintf(stderr, "Error opening file: %s\n", config_path);
         return;
     }
 
-    char temp_path[256];
+    // Generate a temporary file path
+    char temp_path[TEMP_PATH_LENGTH];
     snprintf(temp_path, sizeof(temp_path), "%s_temp", config_path);
 
+    // Create a new file
     FILE *temp_fp = fopen(temp_path, "w");
     if (temp_fp == NULL) {
-        printf("Error creating temp file: %s\n", temp_path);
+        fprintf(stderr, "Error creating temp file: %s\n", temp_path);
         fclose(fp);
         return;
     }
 
-    char line[256];
+    // Read the old config file and add to the new file with updated values
+    char line[CONFIG_BUFFER_SIZE];
     int found = 0;
     while (fgets(line, sizeof(line), fp)) {
         // Check if the line starts with the setting we want to edit
@@ -72,33 +86,35 @@ void edit_config (char *setting, char *value, char *config_path)
         }
     }
 
+    // If setting not found in the old file, append it at the end of the new file
     if (!found) {
-        // If setting not found, append it at the end of the file
         fprintf(temp_fp, "%s=%s\n", setting, value);
     }
 
     fclose(fp);
     fclose(temp_fp);
 
-    // Replace the original file with the temp file
+    // Remove the original file
     if (remove(config_path) != 0) {
-        printf("Error deleting original file\n");
+        perror("Error deleting original file");
         remove(temp_path);
         return;
     }
 
+    // Rename the new file to the original name
     if (rename(temp_path, config_path) != 0) {
-        printf("Error renaming temp file to original file\n");
+        perror("Error renaming temp file to original file");
         remove(temp_path);
     }
 }
 
-// Function to get config key-value pairs from config.txt
+// Function to get config key-value pairs from config file
 Config *get_config (size_t *config_count, char *config_path)
 {
+    // Read the config file
     FILE *config_fp = fopen(config_path, "r");
     if (config_fp == NULL) {
-        printf("Error opening file: %s\n", config_path);
+        fprintf(stderr, "Error opening file: %s\n", config_path);
         return NULL;
     }
 
@@ -107,7 +123,8 @@ Config *get_config (size_t *config_count, char *config_path)
     size_t count = 0;
 
     while (fgets(buffer, CONFIG_BUFFER_SIZE, config_fp)) {
-        buffer[strcspn(buffer, "\n")] = 0; // Remove newline
+        // Remove newline
+        buffer[strcspn(buffer, "\n")] = 0; 
 
         // Ignore comment lines
         if (strncmp(buffer, CONFIG_COMMENT_SEQ, 2) == 0) {
@@ -129,6 +146,7 @@ Config *get_config (size_t *config_count, char *config_path)
             }
             config = new_config;
 
+            // Set the key and value
             config[count].name = strdup(key);
             config[count].value = strdup(value);
 
@@ -144,16 +162,22 @@ Config *get_config (size_t *config_count, char *config_path)
     }
 
     fclose(config_fp);
+
+    // Set the config count variable
     *config_count = count;
+    
     return config;
 }
 
 // Function to free dynamically allocated array of config key-value pairs
 void free_config(Config *config, size_t config_count)
 {
+    // Iterate through the config and free each key and value
     for (size_t i = 0; i < config_count; i++) {
         free(config[i].name);
         free(config[i].value);
     }
+    
+    // Free the pointer to the config array
     free(config);
 }

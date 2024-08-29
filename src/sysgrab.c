@@ -1,5 +1,4 @@
 #include <getopt.h>
-#include <stdbool.h>
 #include <libgen.h>
 
 #include "data.h"
@@ -11,6 +10,13 @@
 #define CONFIG_FILE_PATH "config.txt"
 #define MAX_PATH 1024
 #define ERROR_MSG "not found"
+
+// Type for an rgb color
+typedef struct {
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+} Color; 
 
 void get_executable_path (char *exe_path, size_t size);
 void show_help (const char *program_name);
@@ -44,9 +50,10 @@ int main (int argc, char *argv[])
         {"version", no_argument, 0, 'v'},
         {"base-color", required_argument, 0, 'b'},
         {"accent-color", required_argument, 0, 'a'},
-        {0, 0, 0, 0}  // Terminate the array with all zeros
+        {0, 0, 0, 0}
     };
 
+    // Switch for CLI arguments
     while ((opt = getopt_long(argc, argv, "hvb:a:", long_options, &option_index)) != -1) {
         switch (opt) {
             case 'h':
@@ -56,22 +63,24 @@ int main (int argc, char *argv[])
                 printf("Version %s\n", VERSION);
                 return EXIT_SUCCESS; 
             case 'b':
-                if (optarg)
+                if (optarg) {
                     edit_config("base_color", optarg, config_path);
-                else
+                } else {
                     printf("Usage: -b, --base-color [r,g,b]\n");
+                }  
                 break;
             case 'a':
-                if (optarg)
+                if (optarg) {
                     edit_config("accent_color", optarg, config_path);
-                else
+                } else {
                     printf("Usage: -a, --accent-color [r,g,b]\n");
+                }
                 break;
             case '?':
                 fprintf(stderr, "Unknown option: %c\n", optopt);
-                exit(EXIT_FAILURE);
+                return EXIT_FAILURE; 
             default:
-                exit(EXIT_FAILURE);
+                return EXIT_FAILURE; 
         }
     }
     
@@ -92,7 +101,7 @@ int main (int argc, char *argv[])
         free_config(config, config_count);
     }
 
-    // Get art, parse, and print
+    // Get art, parse, and print sysgrab
     size_t max_line_len = 0, line_count = 0; 
     char **art = get_art(&line_count, &max_line_len, art_path);
     if (art != NULL) {
@@ -134,6 +143,7 @@ void show_help (const char *program_name)
     printf("  %s --accent-color 0,0,0\tSet accent color to black\n\n", program_name);
 }
 
+// Function to print sysgrab output
 void print_sysgrab (const Color *base_color, const Color *accent_color, char **art, const size_t *max_line_len, const size_t *line_count)
 {
     char *data_points[] = {
@@ -147,6 +157,7 @@ void print_sysgrab (const Color *base_color, const Color *accent_color, char **a
         "Memory: "
     };
 
+    // If there is art
     if (art != NULL) {
         char *username, *hostname;
 
@@ -155,52 +166,57 @@ void print_sysgrab (const Color *base_color, const Color *accent_color, char **a
         size_t user_host_len = 0;
 
         if (username && hostname) {
-            user_host_len = strlen(username) + strlen(hostname) + 1;
+            // Add @ symbol to the username
             strcat(username, "@");
 
+            // Create a string of dashes
+            user_host_len = strlen(username) + strlen(hostname) + 1;
             char dashes[user_host_len + 1];
             memset(dashes, '-', user_host_len);
             dashes[user_host_len] = '\0';
 
-            if (*line_count > 0) {
+            // If there is at least one line of art
+            if (*line_count > 0)
                 print_line(base_color, accent_color, max_line_len, art[0], username, hostname);
-
-            } else {
+            else
                 print_line(base_color, accent_color, max_line_len, "", username, hostname);
-            }
-
-            if (*line_count > 1) {
+            
+            // If there is more than one line of art
+            if (*line_count > 1)
                 print_line(base_color, accent_color, max_line_len, art[1], "", dashes);
-
-            } else {
+            else
                 print_line(base_color, accent_color, max_line_len, "", "", dashes);
-            }
 
             free(username);
             free(hostname);
         }
 
+        // Iterate through all datapoints and print system information
         for (DataPoint dp = OS; dp <= MEMORY; dp++) {
             char *info = get_info(dp);
+            // Check if the information has been fetched
             if (info) {
+                // Check if there is remaining art
                 if (dp < *line_count) {
-                print_line(base_color, accent_color, max_line_len, art[dp], data_points[dp - 2], info); 
+                    print_line(base_color, accent_color, max_line_len, art[dp], data_points[dp - 2], info); 
                 } else {
+                    // Otherwise print with no art
                     print_line(base_color, accent_color, max_line_len, "", data_points[dp - 2], info);
                 }
             } else {
+                // Printing with an error message if information could not be fetched
                 if (dp < *line_count) {
-                print_line(base_color, accent_color, max_line_len, art[dp], data_points[dp - 2], ERROR_MSG); 
+                    print_line(base_color, accent_color, max_line_len, art[dp], data_points[dp - 2], ERROR_MSG); 
                 } else {
                     print_line(base_color, accent_color, max_line_len, "", data_points[dp - 2], ERROR_MSG);
                 }
             }
         }
 
+        // Print remaining lines of art if there
         for (int i = 10; i < *line_count; i++) {
             print_line(base_color, accent_color, max_line_len, art[i], "", "");
         }
-
     } else {
         char *username, *hostname;
 
@@ -209,13 +225,16 @@ void print_sysgrab (const Color *base_color, const Color *accent_color, char **a
         size_t user_host_len = 0;
 
         if (username && hostname) {
-            user_host_len = strlen(username) + strlen(hostname) + 1;
+            // Add @ symbol to the username
             strcat(username, "@");
 
+            // Create a string of dashes
+            user_host_len = strlen(username) + strlen(hostname) + 1;
             char dashes[user_host_len + 1];
             memset(dashes, '-', user_host_len);
             dashes[user_host_len] = '\0';
 
+            // Print username + hostname and dashes
             print_line(base_color, accent_color, max_line_len, NULL, username, hostname);
             print_line(base_color, accent_color, max_line_len, NULL, "", dashes);
 
@@ -223,6 +242,7 @@ void print_sysgrab (const Color *base_color, const Color *accent_color, char **a
             free(hostname);
         }
 
+        // Iterate through all datapoints and print system information
         for (DataPoint dp = OS; dp <= MEMORY; dp++) {
             char *info = get_info(dp);
             if (info) {
@@ -233,13 +253,14 @@ void print_sysgrab (const Color *base_color, const Color *accent_color, char **a
         }
     }
 
+    // Add empty line for spacing at the end
     printf("\n");
 }
 
 // Function to print line
 void print_line(const Color *base_color, const Color *accent_color, const size_t *max_line_len, char *art_string, char *info_type, char *info_string)
 {
-    // Change color
+    // Change color to accent color
     printf("\033[38;2;%d;%d;%dm", accent_color->r, accent_color->g, accent_color->b);
 
     // Print art (if exists)
@@ -250,7 +271,7 @@ void print_line(const Color *base_color, const Color *accent_color, const size_t
     // Print info type
     printf("%s", info_type);
 
-    // Change color
+    // Change color to base color
     printf("\033[38;2;%d;%d;%dm", base_color->r, base_color->g, base_color->b);
 
     // Print info string

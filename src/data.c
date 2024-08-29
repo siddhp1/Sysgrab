@@ -3,10 +3,12 @@
 #include <errno.h>
 #include <limits.h>
 #include <ctype.h>
+
 #include "data.h"
 
 #define DATA_BUFFER_SIZE 128
 
+// Function to remove prefixes, suffixes, and whitespace from a string
 char *clean_string (char *string, const char *prefix, const char *suffix)
 {
     char *start = string;
@@ -50,6 +52,7 @@ char *clean_string (char *string, const char *prefix, const char *suffix)
     return cleaned_string;
 }
 
+// Function to extract a double value from a string
 double extract_double (const char *string)
 {
     // Extract the first double from the input string
@@ -58,19 +61,21 @@ double extract_double (const char *string)
 
     // If no valid conversion could be performed
     if (string == endptr) {
-        printf("No valid double found in the string.\n");
+        perror("No valid double found in the string.\n");
         return NAN;
     }
 
     return value;
 }
 
+// Function to convert a double to a string
 char *double_to_string(const double value, const char *conv_spec)
 {
     // Determine the required buffer size using the custom conversion specifier
     char format[32];
     snprintf(format, sizeof(format), "%%%s", conv_spec);
 
+    // Determine string length of the double
     int size = snprintf(NULL, 0, format, value);
     if (size < 0) {
         perror("snprintf");
@@ -89,23 +94,26 @@ char *double_to_string(const double value, const char *conv_spec)
     return string;
 }
 
+// Function to extract an integer value from a string
 int extract_int(const char *string)
 {
     // Extract the first integer from the input string
     char *endptr;
-    errno = 0;  // Reset errno before calling strtol
+
+    // Reset errno before calling strtol
+    errno = 0;  
     long value = strtol(string, &endptr, 10);
 
     // If no valid conversion could be performed
     if (string == endptr) {
-        printf("No valid integer found in the string.\n");
-        return INT_MIN;  // Return a sentinel value indicating failure
+        perror("No valid integer found in the string.");
+        return INT_MIN;
     }
 
     // Check for overflow and underflow
     if ((errno == ERANGE && (value == LONG_MAX || value == LONG_MIN)) || (value > INT_MAX || value < INT_MIN)) {
-        printf("Integer out of range.\n");
-        return INT_MIN;  // Return a sentinel value indicating failure
+        perror("Integer out of range.");
+        return INT_MIN;
     }
 
     return (int)value;
@@ -132,7 +140,7 @@ char *int_to_string(int value)
     return string;
 }
 
-// Function to print result of a command
+// Function to get a string from a command
 char *get_from_command (const char *command, const char *look_up, const char *prefix, const char *suffix)
 {
     char buffer[DATA_BUFFER_SIZE];
@@ -143,9 +151,10 @@ char *get_from_command (const char *command, const char *look_up, const char *pr
         return NULL;
     }
 
+    // Get the output from the command
     FILE *fp = popen(command, "r");
     if (fp == NULL) {
-        printf("Error with command: %s\n", command);
+        fprintf(stderr, "Error with command: %s\n", command);
         free(result);
         return NULL;
     }
@@ -153,6 +162,7 @@ char *get_from_command (const char *command, const char *look_up, const char *pr
     // Initialize result
     result[0] = '\0';
 
+    // Search for look up value if provided
     if (look_up) {
         while(fgets(buffer, sizeof(buffer), fp)) {
             if (strncmp(buffer, look_up, strlen(look_up)) == 0) {
@@ -164,6 +174,7 @@ char *get_from_command (const char *command, const char *look_up, const char *pr
             }
         }
     } else {
+        // Otherwise get first line
         if (fgets(buffer, sizeof(buffer), fp)) {
             strcpy(result, buffer);
             char *cleaned_result = clean_string(result, prefix, suffix);
@@ -176,7 +187,7 @@ char *get_from_command (const char *command, const char *look_up, const char *pr
     return result;
 }
 
-// Function to get from file
+// Function to get a string from a file
 char *get_from_file (const char *file_path, const char *look_up, const char *prefix, const char *suffix)
 {
     char buffer[DATA_BUFFER_SIZE];
@@ -187,6 +198,7 @@ char *get_from_file (const char *file_path, const char *look_up, const char *pre
         return NULL;
     }
 
+    // Read file
     FILE *fp = fopen(file_path, "r");
     if (fp == NULL) {
         free(result);
@@ -196,8 +208,8 @@ char *get_from_file (const char *file_path, const char *look_up, const char *pre
     // Initialize result
     result[0] = '\0';
 
+    // Search for look up value if provided
     if (look_up) {
-        // Read file until lookup is found
         while(fgets(buffer, sizeof(buffer), fp)) {
             if (strncmp(buffer, look_up, strlen(look_up)) == 0) {
                 strcpy(result, buffer);
@@ -208,7 +220,7 @@ char *get_from_file (const char *file_path, const char *look_up, const char *pre
             }
         }
     } else {
-        // Just read the first line
+        // Otherwise get first line
         if (fgets(buffer, sizeof(buffer), fp)) {
             strcpy(result, buffer);
             char *cleaned_result = clean_string(result, prefix, suffix);
@@ -220,6 +232,7 @@ char *get_from_file (const char *file_path, const char *look_up, const char *pre
     return result;
 }
 
+// Function to return a formatted string for a system datapoint
 char *get_info (DataPoint dp)
 {
     char *result = NULL;
@@ -251,6 +264,7 @@ char *get_info (DataPoint dp)
             char *version = get_from_file("/sys/devices/virtual/dmi/id/product_version", NULL, "", "\n");
     
             if (name != NULL && version != NULL) {
+                // Concatenate name and version
                 strcat(name, " ");
                 result = strcat(name, version);
             } else {
@@ -268,6 +282,8 @@ char *get_info (DataPoint dp)
         }
         case SHELL: {
             char *shell = getenv("SHELL");
+
+            // Get the token after the last /
             char *last = strrchr(shell, '/');
             if (last != NULL) {
                 result = last + 1;
@@ -277,18 +293,19 @@ char *get_info (DataPoint dp)
         case UPTIME: {
             result = get_from_file("/proc/uptime", NULL, "", "\n");
             if (result) {
+                // Convert seconds to HH:MM:SS
                 int sec = extract_int(result), h, m, s;
                 h = sec / 3600;
                 m = (sec - (3600 * h)) / 60;
                 s = sec - (3600 * h) - (60 * m);
                 free(result);
 
-                // Calculate the required buffer size dynamically
+                // Calculate the required buffer size
                 int buf_size = snprintf(NULL, 0, "%d:%.2d:%.2d", h, m, s) + 1;
                 result = malloc(buf_size);
                 if (result) {
+                    // Print to a formatted string
                     snprintf(result, buf_size, "%d:%.2d:%.2d", h, m, s);
-
                 }
             }
             break;
@@ -304,6 +321,7 @@ char *get_info (DataPoint dp)
             if (cpu && threads && freq) {
                 char *finalcpu = malloc(strlen(cpu) + strlen(threads) + strlen(freq) + 10);
                 if (finalcpu) {
+                    // Print to a formatted string
                     snprintf(finalcpu, strlen(cpu) + strlen(threads) + strlen(freq) + 10,
                             "%s (%s) @ %sGHz", cpu, int_to_string(th), double_to_string(gh, ".2f"));
                     free(cpu);
@@ -348,12 +366,14 @@ char *get_info (DataPoint dp)
                 free(cached_mem);
             }
 
+            // Calculate current memory usage and total available memory in MiB
             char *num = double_to_string((to + sh - fr - bu - ca - sr) / 1024.0, ".0f");
             char *denom = double_to_string(to / 1024.0, ".0f");
 
             if (num && denom) {
                 result = malloc(strlen(num) + strlen(denom) + 20);
                 if (result) {
+                    // Print to a formatted string
                     snprintf(result, strlen(num) + strlen(denom) + 20, "%sMiB / %sMiB", num, denom);
                 }
                 free(num);
