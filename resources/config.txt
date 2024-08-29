@@ -1,2 +1,2 @@
 base_color=255,255,255
-accent_color=0,206,30
+accent_color=20,200,255
