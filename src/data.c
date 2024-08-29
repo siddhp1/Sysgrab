@@ -288,6 +288,7 @@ char *get_info (DataPoint dp)
                 result = malloc(buf_size);
                 if (result) {
                     snprintf(result, buf_size, "%d:%.2d:%.2d", h, m, s);
+
                 }
             }
             break;
