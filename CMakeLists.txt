@@ -23,6 +23,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 # Add the executable
 add_executable(sysgrab ${SOURCES})
 
+# Copy resource files to the bin directory
+add_custom_command(TARGET sysgrab POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/resources/art.txt
+        ${CMAKE_SOURCE_DIR}/resources/config.txt
+        $<TARGET_FILE_DIR:sysgrab>
+)
+
 # Install the executable and resource files
 install(TARGETS sysgrab DESTINATION ${CMAKE_SOURCE_DIR}/bin)
 install(FILES resources/art.txt resources/config.txt DESTINATION ${CMAKE_SOURCE_DIR}/bin)

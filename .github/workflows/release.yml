@@ -1,0 +1,64 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y cmake gcc
+
+    - name: Build with CMake
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        cmake --build .
+    
+    - name: Archive production artifacts
+      run: |
+        mkdir -p release
+        cp bin/* release/
+        cd release
+        zip -r sysgrab-release.zip *
+
+    - name: Upload Release Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sysgrab-binary
+        path: release/sysgrab-release.zip
+
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: build
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download artifacts from build job
+      uses: actions/download-artifact@v4
+      with:
+        name: sysgrab-binary
+        path: release/
+
+    - name: Upload release assets to existing release
+      run: |
+        release_id=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                          "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" \
+                          | jq '.id')
+        curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Content-Type: application/zip" \
+                --data-binary @release/sysgrab-release.zip \
+                "https://uploads.github.com/repos/${{ github.repository }}/releases/${release_id}/assets?name=sysgrab-release.zip"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
