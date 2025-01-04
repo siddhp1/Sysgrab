@@ -14,7 +14,7 @@ void print_line(Color base_color, Color accent_color, const size_t max_line_len,
   printf("\033[38;2;%d;%d;%dm", accent_color.red, accent_color.green,
          accent_color.blue);
   if (art_string) {
-    printf(" %-*s", max_line_len + 2, art_string);
+    printf(" %-*s", (int)max_line_len + 2, art_string);
   }
   if (datapoint) {
     printf("%s", datapoint->key);

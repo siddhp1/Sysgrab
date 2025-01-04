@@ -55,8 +55,6 @@ int main(int argc, char *argv[]) {
   FILE *log_fp = NULL;
 
   if (config->log_errors) {
-    printf("%d", config->log_errors);
-
     const char *log_file_path = get_log_file_path();
 
     log_fp = freopen(log_file_path, "w", stderr);
