@@ -1,282 +1,92 @@
 #include <getopt.h>
-#include <libgen.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "data.h"
-#include "config.h"
-#include "art.h"
+#include "sysgrab_art.h"
+#include "sysgrab_config.h"
+#include "sysgrab_log.h"
+#include "sysgrab_path.h"
+#include "sysgrab_print.h"
 
-#define VERSION "0.0.1"
-#define ART_FILE_PATH "art.txt"
-#define CONFIG_FILE_PATH "config.txt"
-#define MAX_PATH 1024
-#define ERROR_MSG "not found"
+#define CONFIG_FILE_NAME "config.yaml"
+#define REPO_URL "github.com/siddhp1/Sysgrab"
+#define VERSION "2.0.0"
 
-// Type for an rgb color
-typedef struct {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-} Color; 
+int main(int argc, char *argv[]) {
+  int opt;
+  int option_index = 0;
 
-void get_executable_path (char *exe_path, size_t size);
-void show_help (const char *program_name);
-void print_sysgrab (const Color *base_color, const Color *accent_color, char **art, const size_t *max_line_len, const size_t *line_count);
-void print_line (const Color *base_color, const Color *accent_color, const size_t *max_line_len, char *art_string, char *info_type, char *info_string);
+  static struct option long_options[] = {{"help", no_argument, 0, 'h'},
+                                         {"version", no_argument, 0, 'v'},
+                                         {0, 0, 0, 0}};
 
-int main (int argc, char *argv[]) 
-{
-    char exe_path[MAX_PATH];
-    char art_path[MAX_PATH];
-    char config_path[MAX_PATH];
-
-    // Get the path and directory of the executable
-    get_executable_path(exe_path, sizeof(exe_path));
-    char *exe_dir = dirname(exe_path);
-
-    // Construct the full paths to the resource files
-    snprintf(art_path, sizeof(art_path), "%s/art.txt", exe_dir);
-    snprintf(config_path, sizeof(config_path), "%s/config.txt", exe_dir);
-
-    // Check for and generate art/config files if they do not exist
-    generate_art_file(art_path);
-    generate_config_file(config_path);
-
-    int opt;
-    int option_index = 0;
-
-    // Long options
-    static struct option long_options[] = {
-        {"help", no_argument, 0, 'h'},
-        {"version", no_argument, 0, 'v'},
-        {"base-color", required_argument, 0, 'b'},
-        {"accent-color", required_argument, 0, 'a'},
-        {0, 0, 0, 0}
-    };
-
-    // Switch for CLI arguments
-    while ((opt = getopt_long(argc, argv, "hvb:a:", long_options, &option_index)) != -1) {
-        switch (opt) {
-            case 'h':
-                show_help(argv[0]);
-                return EXIT_SUCCESS; 
-            case 'v':
-                printf("Version %s\n", VERSION);
-                return EXIT_SUCCESS; 
-            case 'b':
-                if (optarg) {
-                    edit_config("base_color", optarg, config_path);
-                } else {
-                    printf("Usage: -b, --base-color [r,g,b]\n");
-                }  
-                break;
-            case 'a':
-                if (optarg) {
-                    edit_config("accent_color", optarg, config_path);
-                } else {
-                    printf("Usage: -a, --accent-color [r,g,b]\n");
-                }
-                break;
-            case '?':
-                fprintf(stderr, "Unknown option: %c\n", optopt);
-                return EXIT_FAILURE; 
-            default:
-                return EXIT_FAILURE; 
-        }
+  while ((opt = getopt_long(argc, argv, "hv", long_options, &option_index)) !=
+         -1) {
+    switch (opt) {
+    case 'h':
+      printf("Documentation can be found at %s\n", REPO_URL);
+      exit(EXIT_SUCCESS);
+    case 'v':
+      printf("Version %s\n", VERSION);
+      exit(EXIT_SUCCESS);
+    case '?':
+      if (optopt) {
+        fprintf(stderr, "Invalid option: -%c\n", optopt);
+      } else {
+        fprintf(stderr, "Invalid option: %s\n", argv[optind - 1]);
+      }
+    default:
+      exit(EXIT_FAILURE);
     }
-    
-    // Get config and parse
-    size_t config_count = 0;
-    Config *config = get_config(&config_count, config_path);
-    Color base_color, accent_color; 
-    if (config != NULL) {
-        // Parse specific settings
-        for (int i = 0; i < config_count; i++) {
-            if (strcmp(config[i].name, "base_color") == 0) {
-                sscanf(config[i].value, "%hhu,%hhu,%hhu", &base_color.r, &base_color.g, &base_color.b);
-            }
-            if (strcmp(config[i].name, "accent_color") == 0) {
-                sscanf(config[i].value, "%hhu,%hhu,%hhu", &accent_color.r, &accent_color.g, &accent_color.b);
-            }
-        }
-        free_config(config, config_count);
+  }
+
+  char *config_path = get_file_path(CONFIG_FILE_NAME);
+  if (config_path == NULL) {
+    perror("Failed to get config file path");
+    exit(EXIT_FAILURE);
+  }
+
+  Config *config = get_config(config_path);
+  if (config == NULL) {
+    perror("Failed to get config");
+    exit(EXIT_FAILURE);
+  }
+
+  FILE *log_fp = NULL;
+
+  if (config->log_errors) {
+    printf("%d", config->log_errors);
+
+    const char *log_file_path = get_log_file_path();
+
+    log_fp = freopen(log_file_path, "w", stderr);
+    if (log_fp == NULL) {
+      perror("Failed to redirect stderr");
+      exit(EXIT_FAILURE);
     }
-
-    // Get art, parse, and print sysgrab
-    size_t max_line_len = 0, line_count = 0; 
-    char **art = get_art(&line_count, &max_line_len, art_path);
-    if (art != NULL) {
-        print_sysgrab(&base_color, &accent_color, art, &max_line_len, &line_count);
-        free_art(art, line_count);
-    } else {
-        print_sysgrab(&base_color, &accent_color, NULL, &max_line_len, NULL);
+  } else {
+    log_fp = freopen("/dev/null", "w", stderr);
+    if (log_fp == NULL) {
+      perror("Failed to redirect stderr");
+      exit(EXIT_FAILURE);
     }
+  }
 
-    return EXIT_SUCCESS;
-}
+  char *art_path = get_file_path(config->art_file_name);
 
-// Function to get executable path
-void get_executable_path(char *exe_path, size_t size)
-{
-    ssize_t len = readlink("/proc/self/exe", exe_path, size - 1);
-    if (len != -1) {
-        exe_path[len] = '\0';
-    } else {
-        perror("Error finding executable path");
-        exit(EXIT_FAILURE);
-    }
-}
+  Art *art = get_art(art_path);
 
-// Function to print CLI help information
-void show_help (const char *program_name)
-{
-    printf("Usage: %s [OPTIONS]\n", program_name);
-    printf("Modify the configuration settings with the specified options.\n\n");
-    printf("Options:\n");
-    printf("  (no option)\t\t\tDisplay sysfetch\n");
-    printf("  -h, --help\t\t\tShow this help message and exit\n");
-    printf("  -v, --version\t\t\tDisplay version information and exit\n");
-    printf("  -b, --base-color [r,g,b]\tSet base color in the format r,g,b\n");
-    printf("  -a, --accent-color [r,g,b]\tSet accent color in the format r,g,b\n\n");
-    printf("Examples:\n");
-    printf("  %s\t\t\tDisplay sysfetch\n", program_name);
-    printf("  %s -b 255,255,255\tSet base color to white\n", program_name);
-    printf("  %s --accent-color 0,0,0\tSet accent color to black\n\n", program_name);
-}
+  print_sysgrab(art, config);
 
-// Function to print sysgrab output
-void print_sysgrab (const Color *base_color, const Color *accent_color, char **art, const size_t *max_line_len, const size_t *line_count)
-{
-    char *data_points[] = {
-        "OS: ",
-        "Architecture: ",
-        "Kernel: ",
-        "Host: ",
-        "Shell: ",
-        "Uptime: ",
-        "CPU: ",
-        "Memory: "
-    };
+  free(config->data);
+  free(config);
 
-    // If there is art
-    if (art != NULL) {
-        char *username, *hostname;
+  free_art(art);
 
-        username = get_info(USERNAME);
-        hostname = get_info(HOSTNAME);
-        size_t user_host_len = 0;
+  free(config_path);
+  free(art_path);
 
-        if (username && hostname) {
-            // Add @ symbol to the username
-            strcat(username, "@");
+  fclose(log_fp);
 
-            // Create a string of dashes
-            user_host_len = strlen(username) + strlen(hostname) + 1;
-            char dashes[user_host_len + 1];
-            memset(dashes, '-', user_host_len);
-            dashes[user_host_len] = '\0';
-
-            // If there is at least one line of art
-            if (*line_count > 0)
-                print_line(base_color, accent_color, max_line_len, art[0], username, hostname);
-            else
-                print_line(base_color, accent_color, max_line_len, "", username, hostname);
-            
-            // If there is more than one line of art
-            if (*line_count > 1)
-                print_line(base_color, accent_color, max_line_len, art[1], "", dashes);
-            else
-                print_line(base_color, accent_color, max_line_len, "", "", dashes);
-
-            free(username);
-            free(hostname);
-        }
-
-        // Iterate through all datapoints and print system information
-        for (DataPoint dp = OS; dp <= MEMORY; dp++) {
-            char *info = get_info(dp);
-            // Check if the information has been fetched
-            if (info) {
-                // Check if there is remaining art
-                if (dp < *line_count) {
-                    print_line(base_color, accent_color, max_line_len, art[dp], data_points[dp - 2], info); 
-                } else {
-                    // Otherwise print with no art
-                    print_line(base_color, accent_color, max_line_len, "", data_points[dp - 2], info);
-                }
-            } else {
-                // Printing with an error message if information could not be fetched
-                if (dp < *line_count) {
-                    print_line(base_color, accent_color, max_line_len, art[dp], data_points[dp - 2], ERROR_MSG); 
-                } else {
-                    print_line(base_color, accent_color, max_line_len, "", data_points[dp - 2], ERROR_MSG);
-                }
-            }
-        }
-
-        // Print remaining lines of art if there
-        for (int i = 10; i < *line_count; i++) {
-            print_line(base_color, accent_color, max_line_len, art[i], "", "");
-        }
-    } else {
-        char *username, *hostname;
-
-        username = get_info(USERNAME);
-        hostname = get_info(HOSTNAME);
-        size_t user_host_len = 0;
-
-        if (username && hostname) {
-            // Add @ symbol to the username
-            strcat(username, "@");
-
-            // Create a string of dashes
-            user_host_len = strlen(username) + strlen(hostname) + 1;
-            char dashes[user_host_len + 1];
-            memset(dashes, '-', user_host_len);
-            dashes[user_host_len] = '\0';
-
-            // Print username + hostname and dashes
-            print_line(base_color, accent_color, max_line_len, NULL, username, hostname);
-            print_line(base_color, accent_color, max_line_len, NULL, "", dashes);
-
-            free(username);
-            free(hostname);
-        }
-
-        // Iterate through all datapoints and print system information
-        for (DataPoint dp = OS; dp <= MEMORY; dp++) {
-            char *info = get_info(dp);
-            if (info) {
-                print_line(base_color, accent_color, max_line_len, NULL, data_points[dp - 2], info);
-            } else {
-                print_line(base_color, accent_color, max_line_len, NULL, "", ERROR_MSG);
-            }
-        }
-    }
-
-    // Add empty line for spacing at the end
-    printf("\n");
-}
-
-// Function to print line
-void print_line(const Color *base_color, const Color *accent_color, const size_t *max_line_len, char *art_string, char *info_type, char *info_string)
-{
-    // Change color to accent color
-    printf("\033[38;2;%d;%d;%dm", accent_color->r, accent_color->g, accent_color->b);
-
-    // Print art (if exists)
-    if (art_string != NULL) {
-        printf(" %-*s", *max_line_len + 2, art_string);
-    }
-   
-    // Print info type
-    printf("%s", info_type);
-
-    // Change color to base color
-    printf("\033[38;2;%d;%d;%dm", base_color->r, base_color->g, base_color->b);
-
-    // Print info string
-    printf("%s\n", info_string);
-
-    // Reset color
-    printf("\033[0m");
+  exit(EXIT_SUCCESS);
 }

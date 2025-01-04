@@ -1,6 +1,7 @@
 # Generated directories
 /bin/
 /build/
+/logs/
 
 # CMake
 CMakeLists.txt.user
