@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "string.h"
+#include "sysgrab_string.h"
 
 #define MAX_LEN 256
 

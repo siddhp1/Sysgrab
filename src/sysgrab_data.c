@@ -1,12 +1,14 @@
 #include <math.h>
 #include <pwd.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "number.h"
-#include "string.h"
+#include "sysgrab_data.h"
+#include "sysgrab_number.h"
+#include "sysgrab_string.h"
 
 #define MAX_LEN 256
 
@@ -27,6 +29,7 @@ char *get_architecture(void) {
   }
 
   free(temp);
+
   return architecture;
 }
 
@@ -48,6 +51,7 @@ char *get_computer_helper(const char *file_path, const char *prefix,
   }
 
   free(temp);
+
   return computer_data_point;
 }
 
@@ -86,8 +90,7 @@ char *get_computer(void) {
     }
     computer = temp;
 
-    strcat(computer, name);
-    strcat(computer, "");
+    strcat(computer, " ");
     strcat(computer, version);
   } else {
     perror("Failed to get computer verison");
@@ -97,6 +100,7 @@ char *get_computer(void) {
 
   free(name);
   free(version);
+
   return computer;
 }
 
@@ -118,6 +122,7 @@ char *get_cpu_helper(const char *look_up, const char *prefix,
   }
 
   free(temp);
+
   return cpu_data_point;
 }
 
@@ -210,6 +215,7 @@ char *get_cpu(void) {
   free(cpu_name);
   free(cpu_threads);
   free(cpu_frequency);
+
   return cpu;
 }
 
@@ -383,6 +389,7 @@ char *get_os(void) {
   }
 
   free(temp);
+
   return os;
 }
 
@@ -440,7 +447,7 @@ char *get_uptime(void) {
   uptime = NULL;
 
   long hours = uptime_seconds / 3600;
-  int minutes = (uptime_seconds - (3600 * hours) / 60);
+  int minutes = (uptime_seconds - (3600 * hours)) / 60;
   int seconds = uptime_seconds - (3600 * hours) - (60 * minutes);
 
   int length = snprintf(NULL, 0, "%ld:%.2d:%.2d", hours, minutes, seconds);
@@ -478,14 +485,174 @@ char *get_username(void) {
   return username;
 }
 
-// TESTING
-int main(void) {
-  // For testing, remove later
-  char *temp = get_memory();
+DataPoint *create_datapoint(char *key, char *value, char *delimiter) {
+  DataPoint *datapoint = malloc(sizeof(DataPoint));
+  if (datapoint == NULL) {
+    perror("Failed to allocate memory");
+    return NULL;
+  }
 
-  puts(temp);
+  char temp[MAX_LEN];
+  snprintf(temp, MAX_LEN, "%s%s", key, delimiter);
 
-  free(temp);
+  key = NULL;
+  key = strdup(temp);
+  if (key == NULL) {
+    perror("Failed to create string");
+    free(datapoint);
+    return NULL;
+  }
 
-  return 0;
+  datapoint->key = key;
+  datapoint->value = value;
+
+  return datapoint;
+}
+
+void free_datapoint(DataPoint *datapoint) {
+  free(datapoint->key);
+  free(datapoint->value);
+  free(datapoint);
+}
+
+DataPoint *get_datapoint(const char *data_point) {
+  DataPoint *datapoint = NULL;
+  char *value = NULL;
+
+  if (strcmp(data_point, "user") == 0) {
+    char *username = get_username();
+    if (username == NULL) {
+      perror("Failed to get username");
+      return NULL;
+    }
+
+    char *hostname = get_hostname();
+    if (hostname == NULL) {
+      perror("Failed to get hostname");
+      free(username);
+      return NULL;
+    }
+
+    size_t key_len = strlen(username) + 2;
+    char *key = (char *)malloc(key_len);
+    if (key == NULL) {
+      perror("Failed to allocate memory for key");
+      free(username);
+      free(hostname);
+      return NULL;
+    }
+
+    snprintf(key, key_len, "%s", username);
+    datapoint = create_datapoint(key, hostname, "@");
+
+    free(username);
+  } else if (strcmp(data_point, "architecture") == 0) {
+    value = get_architecture();
+    if (value == NULL) {
+      perror("Failed to get architecture");
+      return NULL;
+    }
+    datapoint = create_datapoint("Architecture", value, ": ");
+  } else if (strcmp(data_point, "computer") == 0) {
+    value = get_computer();
+    if (value == NULL) {
+      perror("Failed to get computer");
+      return NULL;
+    }
+    datapoint = create_datapoint("Host", value, ": ");
+  } else if (strcmp(data_point, "cpu") == 0) {
+    value = get_cpu();
+    if (value == NULL) {
+      perror("Failed to get CPU");
+      return NULL;
+    }
+    datapoint = create_datapoint("CPU", value, ": ");
+  } else if (strcmp(data_point, "kernel") == 0) {
+    value = get_kernel();
+    if (value == NULL) {
+      perror("Failed to get kernel");
+      return NULL;
+    }
+    datapoint = create_datapoint("Kernel", value, ": ");
+  } else if (strcmp(data_point, "memory") == 0) {
+    value = get_memory();
+    if (value == NULL) {
+      perror("Failed to get memory");
+      return NULL;
+    }
+    datapoint = create_datapoint("Memory", value, ": ");
+  } else if (strcmp(data_point, "os") == 0) {
+    value = get_os();
+    if (value == NULL) {
+      perror("Failed to get OS");
+      return NULL;
+    }
+    datapoint = create_datapoint("OS", value, ": ");
+  } else if (strcmp(data_point, "shell") == 0) {
+    value = get_shell();
+    if (value == NULL) {
+      perror("Failed to get shell");
+      return NULL;
+    }
+    datapoint = create_datapoint("Shell", value, ": ");
+  } else if (strcmp(data_point, "uptime") == 0) {
+    value = get_uptime();
+    if (value == NULL) {
+      perror("Failed to get uptime");
+      return NULL;
+    }
+    datapoint = create_datapoint("Uptime", value, ": ");
+  } else if (strcmp(data_point, "hostname") == 0) {
+    return NULL;
+  } else {
+    fprintf(stderr, "Unknown data point: %s\n", data_point);
+    return NULL;
+  }
+
+  if (datapoint == NULL) {
+    perror("Failed to create datapoint");
+    free(value);
+    return NULL;
+  }
+
+  return datapoint;
+}
+
+Data *create_data(void) {
+  Data *data = malloc(sizeof(Data));
+  if (data == NULL) {
+    perror("Failed to allocate memory");
+    return NULL;
+  }
+
+  data->length = 0;
+  data->datapoints = NULL;
+
+  return data;
+}
+
+bool add_datapoint(Data *data, DataPoint *datapoint) {
+  if (datapoint == NULL) {
+    perror("Datapoint is null");
+    return false;
+  }
+
+  data->datapoints =
+      realloc(data->datapoints, (data->length + 1) * sizeof(DataPoint *));
+  if (data->datapoints == NULL) {
+    perror("Failed to allocate memory");
+    return false;
+  }
+
+  data->datapoints[data->length] = datapoint;
+  data->length++;
+  return true;
+}
+
+void free_data(Data *data) {
+  for (size_t i = 0; i < data->length; i++) {
+    free_datapoint(data->datapoints[i]);
+  }
+  free(data->datapoints);
+  free(data);
 }

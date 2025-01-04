@@ -1,8 +1,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "art.h"
+#include "sysgrab_art.h"
 
 #define MAX_LEN 256
 
@@ -63,7 +64,7 @@ FILE *open_art_file(const char *file_path) {
 Art *get_art(const char *file_path) {
   size_t lines = 0;
   size_t maximum_line_length = 0;
-  char **art_array;
+  char **art_array = NULL;
   Art *art = NULL;
 
   char temp[MAX_LEN];

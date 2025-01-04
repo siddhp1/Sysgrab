@@ -1,5 +1,5 @@
-#ifndef STRING_H
-#define STRING_H
+#ifndef SYSGRAB_STRING_H
+#define SYSGRAB_STRING_H
 
 char *clean_string(const char *original_string, const char *prefix,
                    const char *suffix);

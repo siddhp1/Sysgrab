@@ -1,5 +1,7 @@
-#ifndef ART_H
-#define ART_H
+#ifndef SYSGRAB_ART_H
+#define SYSGRAB_ART_H
+
+#include <stddef.h>
 
 typedef struct Art {
   size_t lines;
@@ -8,6 +10,6 @@ typedef struct Art {
 } Art;
 
 void free_art(Art *art);
-Art *get_art(char *file_path);
+Art *get_art(const char *file_path);
 
 #endif

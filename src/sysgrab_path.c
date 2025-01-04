@@ -4,6 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "sysgrab_time.h"
+
 #define MAX_LEN 1024
 
 char *get_executable_directory_path(void) {
@@ -38,5 +40,6 @@ char *get_file_path(const char *file_name) {
   path = strdup(temp);
 
   free(executable_directory_path);
+
   return (path);
 }
