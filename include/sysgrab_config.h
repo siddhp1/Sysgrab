@@ -10,7 +10,6 @@ typedef struct Color {
 } Color;
 
 typedef struct Config {
-  bool log_errors;
   Color base_color;
   Color accent_color;
   char *art_file_name;

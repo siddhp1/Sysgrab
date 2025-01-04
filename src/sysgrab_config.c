@@ -11,15 +11,14 @@
 
 #define MAX_LEN 256
 
-Config *create_config(bool log_errors, Color base_color, Color accent_color,
-                      char *art_file_name, Data *data) {
+Config *create_config(Color base_color, Color accent_color, char *art_file_name,
+                      Data *data) {
   Config *config = malloc(sizeof(Config));
   if (config == NULL) {
     perror("Failed to allocate memory");
     return NULL;
   }
 
-  config->log_errors = log_errors;
   config->base_color = base_color;
   config->accent_color = accent_color;
   config->art_file_name = art_file_name;
@@ -37,8 +36,7 @@ FILE *open_config_file(const char *file_path) {
       return NULL;
     }
 
-    const char *default_yaml = "log_errors: True\n"
-                               "art_file_name: art.txt\n"
+    const char *default_yaml = "art_file_name: art.txt\n"
                                "base_color: [255, 255, 255]\n"
                                "accent_color: [20, 200, 255]\n"
                                "ordering:\n"
@@ -80,7 +78,6 @@ Config *get_config(const char *file_path) {
 
   yaml_parser_set_input_file(&parser, fp);
 
-  bool log_errors = true;
   Color base_color;
   Color accent_color;
   char *art_file_name = NULL;
@@ -117,9 +114,7 @@ Config *get_config(const char *file_path) {
         if (strcmp(current_key, "") == 0) {
           strncpy(current_key, value, sizeof(current_key) - 1);
         } else {
-          if (strcmp(current_key, "log_errors") == 0) {
-            log_errors = (strcmp(value, "True") == 0);
-          } else if (strcmp(current_key, "art_file_name") == 0) {
+          if (strcmp(current_key, "art_file_name") == 0) {
             art_file_name = strdup(value);
             if (art_file_name == NULL) {
               perror("Failed to create string");
@@ -182,8 +177,7 @@ cleanup:
   yaml_parser_delete(&parser);
   fclose(fp);
 
-  config =
-      create_config(log_errors, base_color, accent_color, art_file_name, data);
+  config = create_config(base_color, accent_color, art_file_name, data);
   if (config == NULL) {
     perror("Failed to create config");
     return NULL;

@@ -1,4 +1,3 @@
-log_errors: True
 art_file_name: art.txt
 base_color: [255, 255, 255]
 accent_color: [20, 200, 255]

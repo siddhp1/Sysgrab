@@ -18,9 +18,10 @@ int main(int argc, char *argv[]) {
 
   static struct option long_options[] = {{"help", no_argument, 0, 'h'},
                                          {"version", no_argument, 0, 'v'},
+                                         {"delete-logs", no_argument, 0, 'd'},
                                          {0, 0, 0, 0}};
 
-  while ((opt = getopt_long(argc, argv, "hv", long_options, &option_index)) !=
+  while ((opt = getopt_long(argc, argv, "hvd", long_options, &option_index)) !=
          -1) {
     switch (opt) {
     case 'h':
@@ -28,6 +29,13 @@ int main(int argc, char *argv[]) {
       exit(EXIT_SUCCESS);
     case 'v':
       printf("Version %s\n", VERSION);
+      exit(EXIT_SUCCESS);
+    case 'd':
+      if (!delete_logs()) {
+        printf("Failed to delete logs\n");
+      } else {
+        printf("Successfully deleted logs\n");
+      }
       exit(EXIT_SUCCESS);
     case '?':
       if (optopt) {
@@ -40,6 +48,15 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  const char *log_file_path = get_log_file_path();
+
+  FILE *log_fp = NULL;
+  log_fp = freopen(log_file_path, "w", stderr);
+  if (log_fp == NULL) {
+    perror("Failed to redirect stderr");
+    exit(EXIT_FAILURE);
+  }
+
   char *config_path = get_file_path(CONFIG_FILE_NAME);
   if (config_path == NULL) {
     perror("Failed to get config file path");
@@ -50,24 +67,6 @@ int main(int argc, char *argv[]) {
   if (config == NULL) {
     perror("Failed to get config");
     exit(EXIT_FAILURE);
-  }
-
-  FILE *log_fp = NULL;
-
-  if (config->log_errors) {
-    const char *log_file_path = get_log_file_path();
-
-    log_fp = freopen(log_file_path, "w", stderr);
-    if (log_fp == NULL) {
-      perror("Failed to redirect stderr");
-      exit(EXIT_FAILURE);
-    }
-  } else {
-    log_fp = freopen("/dev/null", "w", stderr);
-    if (log_fp == NULL) {
-      perror("Failed to redirect stderr");
-      exit(EXIT_FAILURE);
-    }
   }
 
   char *art_path = get_file_path(config->art_file_name);

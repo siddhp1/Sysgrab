@@ -20,7 +20,7 @@ To install Sysgrab, follow these steps:
 
     Add the extracted directory to your system PATH to make `sysgrab` accessible from anywhere in the terminal.
 
-    Add this line to your shell configuration to make the change persistent
+    Add this line to your shell configuration to make the change persistent:
 
     ```bash
     export PATH=$PATH:/path/to/sysgrab-directory
@@ -39,15 +39,16 @@ sysgrab [OPTIONS]
   (no option)                   Display system information
   -h, --help                    Show a help message and exit
   -v, --version                 Display version information and exit
+  -d, --delete-logs             Delete logs
 ```
 
 ## Configuration
 
 To configure Sysgrab, follow these steps:
 
-1. **Configure colors, logging, and data ordering**:
+1. **Configure colors and data ordering**:
 
-    To configure the colors, edit the `config.yaml` file.
+    To configure the colors and ordering, edit the `config.yaml` file.
 
 2. **Add art**:
 
