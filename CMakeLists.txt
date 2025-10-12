@@ -1,39 +1,36 @@
-# CMake minimum version
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.21)
 
-# Project name and version
-project(sysgrab VERSION 1.0)
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Force the use of GCC
-set(CMAKE_C_COMPILER gcc)
+set(CPM_DOWNLOAD_VERSION 0.40.8)
+set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
 
-# Set the C standard
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED True)
+if(NOT(EXISTS ${CPM_DOWNLOAD_LOCATION}))
+    message(STATUS "Downloading CPM.cmake to ${CPM_DOWNLOAD_LOCATION}")
+    file(DOWNLOAD
+        https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+        ${CPM_DOWNLOAD_LOCATION}
+    )
+endif()
 
-# Include directories
-include_directories(include)
+include(${CPM_DOWNLOAD_LOCATION})
 
-# Source files
-set(SOURCES src/main.c src/sysgrab_art.c src/sysgrab_config.c src/sysgrab_data.c src/sysgrab_log.c src/sysgrab_number.c src/sysgrab_path.c src/sysgrab_print.c src/sysgrab_string.c src/sysgrab_time.c)
-
-# Specify the output directory for binaries
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-
-# Add the executable
-add_executable(sysgrab ${SOURCES})
-
-# Link the yaml library
-target_link_libraries(sysgrab yaml)
-
-# Copy resource files to the bin directory
-add_custom_command(TARGET sysgrab POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_SOURCE_DIR}/resources/art.txt
-        ${CMAKE_SOURCE_DIR}/resources/config.yaml
-        $<TARGET_FILE_DIR:sysgrab>
+CPMAddPackage(
+    NAME libyaml
+    GITHUB_REPOSITORY yaml/libyaml
+    GIT_TAG 0.2.5
+    VERSION 0.2.5
+    OPTIONS
+        "BUILD_TESTING OFF"
+        "BUILD_SHARED_LIBS OFF"
 )
 
-# Install the executable and resource files
-install(TARGETS sysgrab DESTINATION ${CMAKE_SOURCE_DIR}/bin)
-install(FILES resources/art.txt resources/config.yaml DESTINATION ${CMAKE_SOURCE_DIR}/bin)
+project(
+    sysgrab 
+    VERSION 3.0.0
+    DESCRIPTION "Sysgrab"
+    LANGUAGES C
+)
+
+add_subdirectory(src)

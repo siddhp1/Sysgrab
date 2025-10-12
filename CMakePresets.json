@@ -1,0 +1,93 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "conf-common",
+      "description": "General settings that apply to all configurations",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}"
+    },
+    {
+      "name": "conf-linux-common",
+      "description": "Linux settings for clang toolchains",
+      "hidden": true,
+      "inherits": "conf-common",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-x64-clang-debug",
+      "displayName": "Linux x64 Clang Debug",
+      "description": "Target Linux x64 with the clang compiler, debug build type",
+      "inherits": "conf-linux-common",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_FLAGS": "-m64 -g -O0",
+        "CMAKE_C_CLANG_TIDY": "clang-tidy"
+      }
+    },
+    {
+      "name": "linux-x64-clang-release",
+      "displayName": "Linux x64 Clang Release",
+      "description": "Target Linux x64 with the clang compiler, release build type",
+      "inherits": "conf-linux-common",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_FLAGS": "-m64 -O3"
+      }
+    },
+    {
+      "name": "linux-x86-clang-debug",
+      "displayName": "Linux x86 Clang Debug",
+      "description": "Target Linux x86 (32-bit) with the clang compiler, debug build type",
+      "inherits": "conf-linux-common",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_FLAGS": "-m32 -g -O0",
+        "CMAKE_C_CLANG_TIDY": "clang-tidy"
+      }
+    },
+    {
+      "name": "linux-x86-clang-release",
+      "displayName": "Linux x86 Clang Release",
+      "description": "Target Linux x86 (32-bit) with the clang compiler, release build type",
+      "inherits": "conf-linux-common",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_FLAGS": "-m32 -O3"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-x64-clang-debug",
+      "configurePreset": "linux-x64-clang-debug"
+    },
+    {
+      "name": "linux-x64-clang-release",
+      "configurePreset": "linux-x64-clang-release"
+    },
+    {
+      "name": "linux-x86-clang-debug",
+      "configurePreset": "linux-x86-clang-debug"
+    },
+    {
+      "name": "linux-x86-clang-release",
+      "configurePreset": "linux-x86-clang-release"
+    }
+  ]
+}
