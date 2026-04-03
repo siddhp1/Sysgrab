@@ -17,9 +17,9 @@ add_custom_target(copy_art_file ALL
 
 add_custom_target(copy_config_file ALL 
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-		"${CMAKE_SOURCE_DIR}/resources/config.yaml"
-		"$<TARGET_FILE_DIR:sysgrab>/config.yaml"
-	COMMENT "Copying config.yaml to output directory"
+		"${CMAKE_SOURCE_DIR}/resources/config.cfg"
+		"$<TARGET_FILE_DIR:sysgrab>/config.cfg"
+	COMMENT "Copying config.cfg to output directory"
 	VERBATIM
 )
 
