@@ -37,42 +37,31 @@ inline std::mutex& GetMutex() {
 }
 
 template <Level L, class... Args>
-inline void Log(
-    std::format_string<Args...> fmt, Args&&... args,
-    const std::source_location loc = std::source_location::current()) {
+inline void Log(std::format_string<Args...> fmt, Args&&... args) {
   if (L < min_level.load(std::memory_order_relaxed)) {
     return;
   }
 
   std::scoped_lock lock(GetMutex());
   std::cerr << GetLevelStr(L) << ": "
-            << std::format(fmt, std::forward<Args>(args)...) << " ("
-            << loc.file_name() << ":" << loc.line() << ")\n";
+            << std::format(fmt, std::forward<Args>(args)...) << "\n";
 }
 
 template <class... Args>
-inline void Debug(
-    std::format_string<Args...> f, Args&&... a,
-    const std::source_location loc = std::source_location::current()) {
-  Log<Level::kDebug>(f, std::forward<Args>(a)..., loc);
+inline void Debug(std::format_string<Args...> f, Args&&... a) {
+  Log<Level::kDebug>(f, std::forward<Args>(a)...);
 }
 template <class... Args>
-inline void Info(
-    std::format_string<Args...> f, Args&&... a,
-    const std::source_location loc = std::source_location::current()) {
-  Log<Level::kInfo>(f, std::forward<Args>(a)..., loc);
+inline void Info(std::format_string<Args...> f, Args&&... a) {
+  Log<Level::kInfo>(f, std::forward<Args>(a)...);
 }
 template <class... Args>
-inline void Warning(
-    std::format_string<Args...> f, Args&&... a,
-    const std::source_location loc = std::source_location::current()) {
-  Log<Level::kWarning>(f, std::forward<Args>(a)..., loc);
+inline void Warning(std::format_string<Args...> f, Args&&... a) {
+  Log<Level::kWarning>(f, std::forward<Args>(a)...);
 }
 template <class... Args>
-inline void Error(
-    std::format_string<Args...> f, Args&&... a,
-    const std::source_location loc = std::source_location::current()) {
-  Log<Level::kError>(f, std::forward<Args>(a)..., loc);
+inline void Error(std::format_string<Args...> f, Args&&... a) {
+  Log<Level::kError>(f, std::forward<Args>(a)...);
 }
 
 }  // namespace logger
