@@ -19,6 +19,11 @@
             "description": "Unix-like OS settings for gcc toolchains",
             "hidden": true,
             "inherits": "conf-common",
+            "cacheVariables": {
+                "CMAKE_CXX_CLANG_TIDY": "clang-tidy",
+                "CMAKE_CXX_COMPILER": "g++-15",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true
+            },
             "condition": {
                 "type": "inList",
                 "string": "${hostSystemName}",
@@ -34,11 +39,7 @@
             "description": "Target Unix-like OS with the gcc compiler, debug build type",
             "inherits": "conf-unixlike-common",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_C_COMPILER": "gcc",
-                "CMAKE_CXX_CLANG_TIDY": "clang-tidy",
-                "CMAKE_CXX_COMPILER": "g++",
-                "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -47,11 +48,7 @@
             "description": "Target Unix-like OS with the gcc compiler, release build type",
             "inherits": "conf-unixlike-common",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "CMAKE_C_COMPILER": "gcc",
-                "CMAKE_CXX_CLANG_TIDY": "clang-tidy",
-                "CMAKE_CXX_COMPILER": "g++",
-                "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+                "CMAKE_BUILD_TYPE": "Release"
             }
         }
     ],
