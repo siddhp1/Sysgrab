@@ -1,12 +1,8 @@
 #include <chrono>
 #include <cstddef>
-#include <cstdint>
 #include <cstdlib>
-#include <expected>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <string>
 #include <string_view>
 #include <vector>
 
@@ -18,8 +14,11 @@
 int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
   auto start = std::chrono::high_resolution_clock::now();
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   const std::vector<std::string_view> args(argv + 1, argv + argc);
 
+  // There will only be one thread running at this point
+  // NOLINTBEGIN(concurrency-mt-unsafe)
   for (const auto& arg : args) {
     if (arg == "--help" || arg == "-h") {
       std::cout << "Usage: sysgrab\n";
@@ -32,6 +31,8 @@ int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
       std::exit(EXIT_FAILURE);
     }
   }
+  // NOLINTEND(concurrency-mt-unsafe)
+
   const auto config = config::Read(std::filesystem::path("config.cfg"));
   logger::min_level = config.log_level;
 
