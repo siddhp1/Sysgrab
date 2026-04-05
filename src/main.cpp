@@ -10,38 +10,12 @@
 #include <string_view>
 #include <vector>
 
+#include "art.hpp"
 #include "config.hpp"
 #include "logger.hpp"
+#include "printer.hpp"
 
-// TODO: Update this, or even make it more general
-enum class ArtError : uint8_t { FILE_OPEN_FAIL };
-
-// TODO: Consider opening file up concurrently while printing to avoid
-// loading into memory
-// TODO: Consider running this in parallel with other file access operations
-auto get_art(const std::filesystem::path& path)
-    -> std::expected<std::vector<std::string>, ArtError> {
-  std::ifstream file(path);
-  if (!file) {
-    return std::unexpected(ArtError::FILE_OPEN_FAIL);
-  }
-
-  std::vector<std::string> art{};
-  std::string line;
-  while (std::getline(file, line)) {
-    art.push_back(line);
-  }
-
-  return art;
-}
-
-void print(const std::vector<std::string>& art) {
-  for (const std::string& string : art) {
-    std::cout << string << '\n';
-  }
-}
-
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
   auto start = std::chrono::high_resolution_clock::now();
 
   const std::vector<std::string_view> args(argv + 1, argv + argc);
@@ -67,6 +41,7 @@ int main(int argc, char* argv[]) {
   // logger::Debug("{}", config.accent_color);
   // logger::Debug("{}", config.ordering);
   // logger::Debug("{}", config.log_level);
+  const auto art = art::Read(config.art_path);
 
   const auto art_result = get_art(config.art_path);
   if (!art_result) {

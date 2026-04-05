@@ -1,4 +1,5 @@
 set (SOURCES
+	art.cpp
 	config.cpp
 	main.cpp
 )
