@@ -43,13 +43,9 @@ int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
   // logger::Debug("{}", config.log_level);
   const auto art = art::Read(config.art_path);
 
-  const auto art_result = get_art(config.art_path);
-  if (!art_result) {
-    // TODO: Handle the error here
+  if (art) {
+    printer::Print(art, config.base_color, config.accent_color);
   }
-
-  const auto& art = art_result.value();
-  print(art);
 
   auto end = std::chrono::high_resolution_clock::now();
   auto duration =
