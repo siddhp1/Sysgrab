@@ -1,6 +1,7 @@
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
+#include <atomic>
 #include <cstdint>
 #include <format>
 #include <iostream>

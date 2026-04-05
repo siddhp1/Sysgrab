@@ -1,6 +1,8 @@
 set (SOURCES
+	art.cpp
 	config.cpp
 	main.cpp
+	printer.cpp
 )
 
 add_executable(sysgrab ${SOURCES})
