@@ -1,6 +1,5 @@
 #include "config.hpp"
 
-#include <array>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
@@ -144,14 +143,13 @@ auto ParseLogLevel(std::string_view str)
   return std::unexpected(Error::kInvalidLogLevel);
 }
 
-auto ParseColor(std::string_view str)
-    -> std::expected<std::array<uint8_t, 3>, Error> {
+auto ParseColor(std::string_view str) -> std::expected<Color, Error> {
   str = Trim(str);
   if (str.size() != kDigitLen * kDigitNum) {
     return std::unexpected(Error::kInvalidColor);
   }
 
-  std::array<uint8_t, 3> color{};
+  Color color{};
   for (std::size_t i = 0; i < kDigitNum; ++i) {
     // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const char* begin = str.data() + (i * kDigitLen);

@@ -12,10 +12,12 @@
 
 namespace config {
 
+using Color = std::array<uint8_t, 3>;
+
 struct Config {
   std::filesystem::path art_path{};
-  std::array<uint8_t, 3> base_color{255, 255, 255};
-  std::array<uint8_t, 3> accent_color{255, 255, 255};
+  Color base_color{255, 255, 255};
+  Color accent_color{255, 255, 255};
   std::vector<data::Datum> ordering{
       data::Datum::kOs,       data::Datum::kArchitecture, data::Datum::kKernel,
       data::Datum::kComputer, data::Datum::kShell,        data::Datum::kUptime,
