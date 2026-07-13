@@ -1,0 +1,14 @@
+[package]
+name = "cli"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "sysgrab"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+config = { path = "../config" }
