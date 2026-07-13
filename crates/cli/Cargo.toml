@@ -10,5 +10,7 @@ name = "sysgrab"
 path = "src/main.rs"
 
 [dependencies]
-clap.workspace = true
+art = { path = "../art" }
 config = { path = "../config" }
+clap.workspace = true
+colored.workspace = true

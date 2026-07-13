@@ -10,10 +10,10 @@ pub const CONFIG_PATH: &str = "config.toml";
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 #[serde(default)]
 pub struct Config {
-    art_path: PathBuf,
-    accent_color: [u8; 3],
-    base_color: [u8; 3],
-    ordering: Vec<DataPointKind>,
+    pub art_path: PathBuf,
+    pub accent_color: [u8; 3],
+    pub base_color: [u8; 3],
+    pub ordering: Vec<DataPointKind>,
 }
 
 impl Default for Config {
