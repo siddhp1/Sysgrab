@@ -55,6 +55,9 @@ dependencies = [
 [[package]]
 name = "art"
 version = "3.0.0"
+dependencies = [
+ "tempfile",
+]
 
 [[package]]
 name = "bitflags"
